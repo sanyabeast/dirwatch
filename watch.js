@@ -31,7 +31,7 @@ function onChange(type, path, data){
 
 function execute(){
   childProcess.exec(cmd, function(error, stdout, stderr) {
-    console.log("Watcher:".green, cmd.red, "executed".yellow);
+    console.log("Watcher:".green, cmd.yellow, "executed".green);
     logChanges();
     changes.length = 0;
   });
