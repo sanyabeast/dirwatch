@@ -1,0 +1,17 @@
+{
+	"version" : "0.1.0",
+	"name" : "dirwatch",
+	"author" : {
+		"name" : "Alex Gaivoronski",
+		"email" : "a.gvrnsk@gmail.com"
+	},
+	"repository" : {
+	  	"type" : "git",
+	  	"url" : "https://github.com/sanyabeast/dirwatch.git"
+	},
+	"dependencies": {
+        "colors": "latest",
+        "minimist": "latest",
+				"chokidar" : "latest"
+    }
+}
