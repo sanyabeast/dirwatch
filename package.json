@@ -12,6 +12,7 @@
 	"dependencies": {
         "colors": "latest",
         "minimist": "latest",
-				"chokidar" : "latest"
+				"chokidar" : "latest",
+        "jsonfile": "latest"
     }
 }

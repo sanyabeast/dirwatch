@@ -1,44 +1,80 @@
 var args = require("minimist")(process.argv.slice(2))._;
 
 var childProcess = require('child_process');
+var jsonfile = require("jsonfile");
 var chokidar = require("chokidar");
 var colors = require("colors");
-var changes = [];
 
-var updateTrottling = args[2] || 3000;
-var updateTimeoutID;
+var configPath = args[0];
 
-var paths = args[0].split(", ");
-var cmd = args[1];
+jsonfile.readFile(configPath, function(err, obj){
+  if (err){
+    console.log("dirwatch:".red, err.code, err);
+  } else {
+    global.dirwatch = new Dirwatch(obj);
+  }
+});
 
-console.log(paths, cmd, updateTrottling);
+class Dirwatch {
+  constructor(config){
+    this.changes = [];
+    this.paths = config.paths;
+    this.updateTrottling = config.updateTrottling || 200;
+    this.command = config.command;
+    this.updateTimeoutID = null;
+    this.watchers = {};
+    this.execWait = false;
 
-for (var a = 0, watcher; a < paths.length; a++){
-  watcher = chokidar.watch(paths[a]);
-  watcher
-      .on("change", onChange.bind(null, "change"))
-      .on("unlink", onChange.bind(null, "unlink"));
+    this.execute = this.execute.bind(this);
+    this.subscribeForPaths(this.paths);
 
-  console.log("Watcher:".green, "starts listening".red, paths[a].yellow)
-}
+  }
 
+  subscribeForPaths(paths){
+    for (var a = 0, watcher; a < paths.length; a++){
+      watcher = chokidar.watch(paths[a]);
+      watcher
+          .on("change", this.onChange.bind(this, "change"))
+          .on("unlink", this.onChange.bind(this, "unlink"));
 
-function onChange(type, path, data){
-  clearTimeout(updateTimeoutID);
-  if (changes.indexOf(path) < 0) changes.push(path);
-  updateTimeoutID = setTimeout(execute.bind(), updateTrottling);
-}
+      this.watchers[paths[a]] - watcher;
 
-function execute(){
-  childProcess.exec(cmd, function(error, stdout, stderr) {
-    console.log("Watcher:".green, cmd.yellow, "executed".green);
-    logChanges();
-    changes.length = 0;
-  });
-}
-
-function logChanges(){
-    for (var a = 0; a < changes.length; a++){
-      console.log(changes[a].blue);
+      console.log("dirwatch:".yellow, "starts listening".green, paths[a].yellow);
     }
+  }
+
+  onChange(type, path, data){
+    clearTimeout(this.updateTimeoutID);
+
+    if (this.changes.indexOf(path) < 0){
+      this.changes.push(path);
+    }
+
+    this.updateTimeoutID = setTimeout(this.execute, this.updateTrottling);
+  }
+
+  execute(){
+    if (this.execWait){
+      return;
+    }
+
+    this.execWait = true;
+
+    this.logChanges(this.changes);
+    
+    childProcess.exec(this.command, function(error, stdout, stderr) {
+      console.log("dirwatch:".yellow, this.command.blue, "executed".green);
+      this.changes.length = 0;
+      this.execWait = false;
+    }.bind(this));
+  }
+
+  logChanges(changes){
+      for (var a = 0; a < changes.length; a++){
+        console.log(("dirwatch: changed at " + new Date()).yellow, changes[a].blue);
+      }
+  }
+
 }
+
+module.exports = Dirwatch;
